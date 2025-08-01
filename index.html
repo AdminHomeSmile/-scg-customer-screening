@@ -12,615 +12,102 @@
     <script src="https://cdn.jsdelivr.net/npm/jquery.thailand.js@1.5.3/dist/jquery.Thailand.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/jquery.thailand.js@1.5.3/dist/jquery.Thailand.min.css" rel="stylesheet">
     <style>
-        /* ... (CSS styles remain unchanged, refer to previous code) ... */
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+        }
+        .service-card {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-color: #0284c7;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0369a1, #075985);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+        .form-section {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+        .form-section.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        .floating-label {
+            position: absolute;
+            pointer-events: none;
+            left: 12px;
+            top: 12px;
+            transition: 0.2s ease all;
+            color: #64748b;
+        }
+        .form-input:focus ~ .floating-label,
+        .form-input:not(:placeholder-shown) ~ .floating-label {
+            top: -10px;
+            left: 10px;
+            font-size: 12px;
+            color: #0284c7;
+            background-color: white;
+            padding: 0 5px;
+        }
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%230284c7'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 20px;
+        }
+        .success-checkmark {
+            animation: scale-up 0.5s ease-in-out;
+        }
+        @keyframes scale-up {
+            0% { transform: scale(0); }
+            70% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .autocomplete-dropdown {
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+        }
     </style>
 </head>
 <body class="min-h-screen">
-    <!-- ... (HTML content remains unchanged, refer to previous code) ... -->
+    <!-- ... (HTML content as in previous responses, unchanged, omitted here for brevity) ... -->
+    <!-- Place your original HTML content here. If you want the full HTML structure, please let me know! -->
+    <!-- This placeholder is just for brevity - your full HTML from previous responses goes here. -->
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-5 rounded-lg flex items-center">
+            <svg class="animate-spin h-6 w-6 text-blue-600 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-gray-700">กำลังประมวลผล...</span>
+        </div>
+    </div>
 
     <script>
-        // Thailand Address Database (simplified mock for demo)
-        const thailandAddressDB = {
-            "กรุงเทพมหานคร": {
-                "เขตบางนา": {
-                    "แขวงบางนา": ["10260"],
-                    "แขวงบางนาเหนือ": ["10260"]
-                },
-                "เขตลาดกระบัง": {
-                    "แขวงลาดกระบัง": ["10520"],
-                    "แขวงคลองสองต้นนุ่น": ["10520"]
-                },
-                "เขตจอมทอง": {
-                    "แขวงจอมทอง": ["10150"],
-                    "แขวงบางขุนเทียน": ["10150"]
-                }
-            },
-            "นนทบุรี": {
-                "อำเภอเมืองนนทบุรี": {
-                    "ตำบลบางกระสอ": ["11000"],
-                    "ตำบลตลาดขวัญ": ["11000"]
-                },
-                "อำเภอบางใหญ่": {
-                    "ตำบลบางใหญ่": ["11140"],
-                    "ตำบลบางม่วง": ["11140"]
-                }
-            },
-            "สมุทรปราการ": {
-                "อำเภอเมืองสมุทรปราการ": {
-                    "ตำบลปากน้ำ": ["10270"],
-                    "ตำบลสำโรงเหนือ": ["10270"]
-                },
-                "อำเภอบางพลี": {
-                    "ตำบลบางพลีใหญ่": ["10540"],
-                    "ตำบลราชาเทวะ": ["10540"]
-                }
-            }
-        };
-
-        // Global variables
-        let currentService = '';
-        let currentStep = 1;
-        let formData = {};
-
-        // DOM elements
-        const serviceCards = document.querySelectorAll('.service-card');
-        const backButtons = document.querySelectorAll('.back-btn');
-        const nextButtons = document.querySelectorAll('.next-btn');
-        const submitButton = document.getElementById('submit-btn');
-        const restartButton = document.getElementById('restart-btn');
-        const progressContainer = document.getElementById('progress-container');
-        const progressBar = document.getElementById('progress-bar');
-        const progressText = document.getElementById('progress-text');
-        const progressPercentage = document.getElementById('progress-percentage');
-        const loadingOverlay = document.getElementById('loading-overlay');
-
-        // Helper for safe event listener
-        function safeAddEventListener(id, event, fn) {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener(event, fn);
-        }
-
-        // Service selection
-        serviceCards.forEach(card => {
-            card.addEventListener('click', () => {
-                currentService = card.dataset.service;
-                formData.service = currentService;
-
-                // Hide service selection and show appropriate form
-                hideAllSections();
-                showSection(`${currentService}-form`);
-
-                // Show progress bar
-                progressContainer.classList.remove('hidden');
-                updateProgress(1, 3);
-                currentStep = 1;
-            });
-        });
-
-        // Back buttons
-        backButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                if (currentStep === 1) {
-                    // Go back to service selection
-                    hideAllSections();
-                    showSection('service-selection');
-                    progressContainer.classList.add('hidden');
-                } else if (currentStep === 2) {
-                    // Go back to service form
-                    hideAllSections();
-                    showSection(`${currentService}-form`);
-                    updateProgress(1, 3);
-                }
-                if (currentStep > 1) currentStep--;
-            });
-        });
-
-        // Next buttons
-        nextButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                if (currentStep === 1) {
-                    // Validate service form
-                    if (validateServiceForm()) {
-                        // Save form data
-                        saveServiceFormData();
-
-                        // Go to contact form
-                        hideAllSections();
-                        showSection('contact-form');
-                        updateProgress(2, 3);
-                        currentStep++;
-                    }
-                }
-            });
-        });
-
-        // Submit button
-        submitButton.addEventListener('click', () => {
-            // Validate contact form
-            if (validateContactForm()) {
-                // Save contact form data
-                saveContactFormData();
-
-                // Show loading overlay
-                loadingOverlay.classList.remove('hidden');
-
-                // Submit data to Google Sheets
-                submitToGoogleSheets()
-                    .then(response => {
-                        // Hide loading overlay
-                        loadingOverlay.classList.add('hidden');
-
-                        // Show success message
-                        hideAllSections();
-                        showSection('success-message');
-                        progressContainer.classList.add('hidden');
-                    })
-                    .catch(error => {
-                        // Hide loading overlay
-                        loadingOverlay.classList.add('hidden');
-
-                        // Show error message
-                        alert('เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง');
-                        console.error('Error submitting form:', error);
-                    });
-            }
-        });
-
-        // Restart button (reset ทุก form)
-        restartButton.addEventListener('click', () => {
-            // Reset form data
-            formData = {};
-            currentService = '';
-            currentStep = 1;
-
-            // Reset all forms
-            const forms = [
-                document.getElementById('new-roof-form-el'),
-                document.getElementById('roof-renovation-form-el'),
-                document.getElementById('metal-roof-form-el'),
-                document.getElementById('contact-form-el')
-            ];
-            forms.forEach(f => f && f.reset());
-
-            // Hide all conditional containers
-            [
-                'new-roof-other-plan-container',
-                'renovation-other-house-type-container',
-                'renovation-other-problem-container',
-                'metal-other-house-type-container',
-                'metal-other-problem-container',
-                'other-customer-type-container'
-            ].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.classList.add('hidden');
-            });
-
-            // Show service selection
-            hideAllSections();
-            showSection('service-selection');
-            progressContainer.classList.add('hidden');
-        });
-
-        // Conditional fields for New Roof form
-        safeAddEventListener('new-roof-plan', 'change', function() {
-            const otherPlanContainer = document.getElementById('new-roof-other-plan-container');
-            if (this.value === 'อื่นๆ') {
-                otherPlanContainer.classList.remove('hidden');
-            } else {
-                otherPlanContainer.classList.add('hidden');
-            }
-        });
-
-        // Conditional fields for Renovation form
-        safeAddEventListener('renovation-house-type', 'change', function() {
-            const otherHouseTypeContainer = document.getElementById('renovation-other-house-type-container');
-            if (this.value === 'อื่นๆ') {
-                otherHouseTypeContainer.classList.remove('hidden');
-            } else {
-                otherHouseTypeContainer.classList.add('hidden');
-            }
-        });
-
-        safeAddEventListener('renovation-problem-other', 'change', function() {
-            const otherProblemContainer = document.getElementById('renovation-other-problem-container');
-            if (this.checked) {
-                otherProblemContainer.classList.remove('hidden');
-            } else {
-                otherProblemContainer.classList.add('hidden');
-            }
-        });
-
-        // Conditional fields for Metal Roof form
-        safeAddEventListener('metal-house-type', 'change', function() {
-            const otherHouseTypeContainer = document.getElementById('metal-other-house-type-container');
-            if (this.value === 'อื่นๆ') {
-                otherHouseTypeContainer.classList.remove('hidden');
-            } else {
-                otherHouseTypeContainer.classList.add('hidden');
-            }
-        });
-
-        safeAddEventListener('metal-problem-other', 'change', function() {
-            const otherProblemContainer = document.getElementById('metal-other-problem-container');
-            if (this.checked) {
-                otherProblemContainer.classList.remove('hidden');
-            } else {
-                otherProblemContainer.classList.add('hidden');
-            }
-        });
-
-        // Conditional fields for Contact form
-        safeAddEventListener('customer-type', 'change', function() {
-            const otherCustomerTypeContainer = document.getElementById('other-customer-type-container');
-            if (this.value === 'อื่นๆ') {
-                otherCustomerTypeContainer.classList.remove('hidden');
-            } else {
-                otherCustomerTypeContainer.classList.add('hidden');
-            }
-        });
-
-        // Thailand address autocomplete
-        safeAddEventListener('address-subdistrict', 'input', function() {
-            const input = this.value.trim();
-            const suggestionsContainer = document.getElementById('subdistrict-suggestions');
-
-            if (input.length < 2) {
-                suggestionsContainer.innerHTML = '';
-                suggestionsContainer.classList.add('hidden');
-                return;
-            }
-
-            // Find matching subdistricts
-            const suggestions = [];
-            for (const province in thailandAddressDB) {
-                for (const district in thailandAddressDB[province]) {
-                    for (const subdistrict in thailandAddressDB[province][district]) {
-                        if (subdistrict.includes(input)) {
-                            suggestions.push({
-                                subdistrict: subdistrict,
-                                district: district,
-                                province: province,
-                                postalCodes: thailandAddressDB[province][district][subdistrict]
-                            });
-                        }
-                    }
-                }
-            }
-
-            // Display suggestions
-            if (suggestions.length > 0) {
-                suggestionsContainer.innerHTML = '';
-                suggestions.forEach(suggestion => {
-                    const div = document.createElement('div');
-                    div.className = 'p-2 hover:bg-blue-50 cursor-pointer';
-                    div.textContent = `${suggestion.subdistrict}, ${suggestion.district}, ${suggestion.province}`;
-                    div.addEventListener('click', () => {
-                        document.getElementById('address-subdistrict').value = suggestion.subdistrict;
-                        document.getElementById('address-district').value = suggestion.district;
-                        document.getElementById('address-province').value = suggestion.province;
-                        document.getElementById('address-postal-code').value = suggestion.postalCodes[0];
-                        suggestionsContainer.classList.add('hidden');
-                    });
-                    suggestionsContainer.appendChild(div);
-                });
-                suggestionsContainer.classList.remove('hidden');
-            } else {
-                suggestionsContainer.innerHTML = '';
-                suggestionsContainer.classList.add('hidden');
-            }
-        });
-
-        // Hide suggestions when clicking outside
-        document.addEventListener('click', function(event) {
-            const suggestionsContainer = document.getElementById('subdistrict-suggestions');
-            const subdistrictInput = document.getElementById('address-subdistrict');
-            if (event.target !== subdistrictInput) {
-                suggestionsContainer.classList.add('hidden');
-            }
-        });
-
-        // Helper functions
-        function hideAllSections() {
-            document.querySelectorAll('.form-section').forEach(section => {
-                section.classList.add('hidden');
-                section.classList.remove('active');
-            });
-        }
-        function showSection(sectionId) {
-            const section = document.getElementById(sectionId);
-            section.classList.remove('hidden');
-            setTimeout(() => {
-                section.classList.add('active');
-            }, 10);
-        }
-        function updateProgress(step, totalSteps) {
-            const percentage = Math.round((step / totalSteps) * 100);
-            progressBar.style.width = `${percentage}%`;
-            progressText.textContent = `ขั้นตอนที่ ${step}/${totalSteps}`;
-            progressPercentage.textContent = `${percentage}%`;
-        }
-        function validateServiceForm() {
-            if (currentService === 'new-roof') {
-                const area = document.getElementById('new-roof-area').value;
-                const pkg = document.getElementById('new-roof-package').value;
-                const status = document.getElementById('new-roof-status').value;
-                const plan = document.getElementById('new-roof-plan').value;
-                const budget = document.getElementById('new-roof-budget').value;
-                if (!area || !pkg || !status || !plan || !budget) {
-                    alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
-                    return false;
-                }
-                if (plan === 'อื่นๆ' && !document.getElementById('new-roof-other-plan').value) {
-                    alert('กรุณาระบุแผนการก่อสร้างอื่นๆ');
-                    return false;
-                }
-            } else if (currentService === 'roof-renovation') {
-                const houseType = document.getElementById('renovation-house-type').value;
-                const service = document.getElementById('renovation-service').value;
-                const area = document.getElementById('renovation-area').value;
-                const budget = document.getElementById('renovation-budget').value;
-                if (!houseType || !service || !area || !budget) {
-                    alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
-                    return false;
-                }
-                if (houseType === 'อื่นๆ' && !document.getElementById('renovation-other-house-type').value) {
-                    alert('กรุณาระบุรูปแบบบ้านอื่นๆ');
-                    return false;
-                }
-                const problemLeak = document.getElementById('renovation-problem-leak').checked;
-                const problemFade = document.getElementById('renovation-problem-fade').checked;
-                const problemOther = document.getElementById('renovation-problem-other').checked;
-                if (!problemLeak && !problemFade && !problemOther) {
-                    alert('กรุณาเลือกปัญหาหลังคาอย่างน้อย 1 ข้อ');
-                    return false;
-                }
-                if (problemOther && !document.getElementById('renovation-other-problem').value) {
-                    alert('กรุณาระบุปัญหาหลังคาอื่นๆ');
-                    return false;
-                }
-            } else if (currentService === 'metal-roof') {
-                const houseType = document.getElementById('metal-house-type').value;
-                const area = document.getElementById('metal-area').value;
-                const budget = document.getElementById('metal-budget').value;
-                if (!houseType || !area || !budget) {
-                    alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
-                    return false;
-                }
-                if (houseType === 'อื่นๆ' && !document.getElementById('metal-other-house-type').value) {
-                    alert('กรุณาระบุรูปแบบบ้านอื่นๆ');
-                    return false;
-                }
-                const problemLeak = document.getElementById('metal-problem-leak').checked;
-                const problemFade = document.getElementById('metal-problem-fade').checked;
-                const problemOther = document.getElementById('metal-problem-other').checked;
-                if (!problemLeak && !problemFade && !problemOther) {
-                    alert('กรุณาเลือกปัญหาหลังคาอย่างน้อย 1 ข้อ');
-                    return false;
-                }
-                if (problemOther && !document.getElementById('metal-other-problem').value) {
-                    alert('กรุณาระบุปัญหาหลังคาอื่นๆ');
-                    return false;
-                }
-            }
-            return true;
-        }
-        function validateContactForm() {
-            const name = document.getElementById('customer-name').value;
-            const email = document.getElementById('customer-email').value;
-            const phone = document.getElementById('customer-phone').value;
-            const street = document.getElementById('address-street').value;
-            const subdistrict = document.getElementById('address-subdistrict').value;
-            const district = document.getElementById('address-district').value;
-            const province = document.getElementById('address-province').value;
-            const postalCode = document.getElementById('address-postal-code').value;
-            if (!name || !email || !phone || !street || !subdistrict || !district || !province || !postalCode) {
-                alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
-                return false;
-            }
-            // Validate email format
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                alert('กรุณากรอกอีเมลให้ถูกต้อง');
-                return false;
-            }
-            // Validate phone format (Thai phone number)
-            const phoneRegex = /^0\d{9}$/;
-            if (!phoneRegex.test(phone)) {
-                alert('กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (เช่น 0812345678)');
-                return false;
-            }
-            const customerType = document.getElementById('customer-type').value;
-            if (customerType === 'อื่นๆ' && !document.getElementById('other-customer-type').value) {
-                alert('กรุณาระบุประเภทลูกค้าอื่นๆ');
-                return false;
-            }
-            return true;
-        }
-        function saveServiceFormData() {
-            if (currentService === 'new-roof') {
-                formData.area = document.getElementById('new-roof-area').value;
-                formData.package = document.getElementById('new-roof-package').value;
-                formData.constructionStatus = document.getElementById('new-roof-status').value;
-                formData.constructionPlan = document.getElementById('new-roof-plan').value === 'อื่นๆ' ?
-                    document.getElementById('new-roof-other-plan').value :
-                    document.getElementById('new-roof-plan').value;
-                formData.budget = document.getElementById('new-roof-budget').value;
-            } else if (currentService === 'roof-renovation') {
-                const problems = [];
-                if (document.getElementById('renovation-problem-leak').checked) problems.push('หลังคารั่ว');
-                if (document.getElementById('renovation-problem-fade').checked) problems.push('หลังคาสีซีด');
-                if (document.getElementById('renovation-problem-other').checked) {
-                    problems.push(document.getElementById('renovation-other-problem').value);
-                }
-                formData.houseType = document.getElementById('renovation-house-type').value === 'อื่นๆ' ?
-                    document.getElementById('renovation-other-house-type').value :
-                    document.getElementById('renovation-house-type').value;
-                formData.problems = problems.join(', ');
-                formData.serviceInterest = document.getElementById('renovation-service').value;
-                formData.area = document.getElementById('renovation-area').value;
-                formData.budget = document.getElementById('renovation-budget').value;
-            } else if (currentService === 'metal-roof') {
-                const problems = [];
-                if (document.getElementById('metal-problem-leak').checked) problems.push('หลังคารั่ว');
-                if (document.getElementById('metal-problem-fade').checked) problems.push('หลังคาสีซีด');
-                if (document.getElementById('metal-problem-other').checked) {
-                    problems.push(document.getElementById('metal-other-problem').value);
-                }
-                formData.houseType = document.getElementById('metal-house-type').value === 'อื่นๆ' ?
-                    document.getElementById('metal-other-house-type').value :
-                    document.getElementById('metal-house-type').value;
-                formData.problems = problems.join(', ');
-                formData.area = document.getElementById('metal-area').value;
-                formData.budget = document.getElementById('metal-budget').value;
-            }
-        }
-        function saveContactFormData() {
-            formData.leadType = document.getElementById('lead-type').value;
-            formData.customerType = document.getElementById('customer-type').value === 'อื่นๆ' ?
-                document.getElementById('other-customer-type').value :
-                document.getElementById('customer-type').value;
-            formData.name = document.getElementById('customer-name').value;
-            formData.email = document.getElementById('customer-email').value;
-            formData.phone = document.getElementById('customer-phone').value;
-            formData.address = `${document.getElementById('address-street').value}, ${document.getElementById('address-subdistrict').value}, ${document.getElementById('address-district').value}, ${document.getElementById('address-province').value} ${document.getElementById('address-postal-code').value}`;
-            formData.district = document.getElementById('address-district').value;
-            formData.province = document.getElementById('address-province').value;
-        }
-        function submitToGoogleSheets() {
-            let emailNotification = '';
-            if (currentService === 'new-roof') {
-                emailNotification = 'worapote@scg.com';
-            } else if (currentService === 'roof-renovation') {
-                const district = formData.district;
-                if (
-                    district === 'อ.เมือง' ||
-                    district === 'บางใหญ่' ||
-                    district === 'บางบัวทอง' ||
-                    district === 'ปากเกร็ด' ||
-                    district === 'ไทรน้อย' ||
-                    district === 'บางกรวย' ||
-                    district === 'ลาดหลุมแก้ว' ||
-                    district === 'สามโคก' ||
-                    district === 'สามพราน' ||
-                    district === 'บางเลน' ||
-                    district === 'พุทธมณฑล'
-                ) {
-                    emailNotification = 'WANCHALH@SCG.COM';
-                } else if (
-                    district === 'เขตบางนา' ||
-                    district === 'ลาดกระบัง' ||
-                    district === 'ประเวศ' ||
-                    district === 'บึงกุ่ม' ||
-                    district === 'คันนายาว' ||
-                    district === 'บางเขน' ||
-                    district === 'สายไหม' ||
-                    district === 'คลองสามวา' ||
-                    district === 'มีนบุรี' ||
-                    district === 'หนองจอก' ||
-                    district === 'หลักสี่' ||
-                    district === 'ดอนเมือง' ||
-                    district === 'อ. เมืองสมุทรปราการ' ||
-                    district === 'บางบ่อ' ||
-                    district === 'บางพลี' ||
-                    district === 'กิ่งบางเสาธง' ||
-                    district === 'พระประแดง' ||
-                    district === 'พระสมุทรเจดีย์' ||
-                    district === 'องครักษ์' ||
-                    district === 'บางปะกง'
-                ) {
-                    emailNotification = 'TADTISAN@SCG.COM';
-                } else if (
-                    district === 'เขตจอมทอง' ||
-                    district === 'ทุ่งครุ' ||
-                    district === 'บางขุนเทียน' ||
-                    district === 'บางแค' ||
-                    district === 'บางบอน' ||
-                    district === 'ภาษีเจริญ' ||
-                    district === 'ราษฎร์บูรณะ' ||
-                    district === 'หนองแขม' ||
-                    district === 'บางกอกใหญ่' ||
-                    district === 'ธนบุรี' ||
-                    district === 'คลองสาน' ||
-                    district === 'บางคอแหลม' ||
-                    district === 'ยานนาวา' ||
-                    district === 'สาทร' ||
-                    district === 'บางซื่อ' ||
-                    district === 'พญาไท' ||
-                    district === 'ดุสิต' ||
-                    district === 'บางพลัด' ||
-                    district === 'ราชเทวี' ||
-                    district === 'ปทุมวัน' ||
-                    district === 'บางรัก' ||
-                    district === 'สัมพันธวงศ์' ||
-                    district === 'ป้อมปราบฯ' ||
-                    district === 'พระนคร' ||
-                    district === 'ตลิ่งชัน' ||
-                    district === 'ทวีวัฒนา' ||
-                    district === 'บางกอกน้อย' ||
-                    district === 'ห้วยขวาง' ||
-                    district === 'วังทองหลาง' ||
-                    district === 'บางกะปิ' ||
-                    district === 'สะพานสูง' ||
-                    district === 'วัฒนา' ||
-                    district === 'คลองเตย' ||
-                    district === 'สวนหลวง' ||
-                    district === 'พระโขนง' ||
-                    district === 'ดินแดง' ||
-                    district === 'ลาดพร้าว' ||
-                    district === 'จตุจักร' ||
-                    district === 'อ. เมืองสมุทรสาคร' ||
-                    district === 'กระทุ่มแบน' ||
-                    district === 'บางน้ำเปรี้ย'
-                ) {
-                    emailNotification = 'PRAYADKE@SCG.COM';
-                } else {
-                    emailNotification = 'maytawek@scg.com';
-                }
-                emailNotification += ',maytawek@scg.com';
-            } else if (currentService === 'metal-roof') {
-                emailNotification = 'narinint@scg.com,kridsana@scg.com,nipontun@scg.com,thansaeu@scg.com';
-            }
-            formData.emailNotification = emailNotification;
-            const payload = {
-                timestamp: new Date().toISOString(),
-                service: currentService,
-                leadType: formData.leadType,
-                customerType: formData.customerType,
-                name: formData.name,
-                email: formData.email,
-                phone: formData.phone,
-                address: formData.address,
-                area: formData.area || '',
-                package: formData.package || '',
-                constructionStatus: formData.constructionStatus || '',
-                constructionPlan: formData.constructionPlan || '',
-                budget: formData.budget || '',
-                houseType: formData.houseType || '',
-                problems: formData.problems || '',
-                serviceInterest: formData.serviceInterest || '',
-                emailNotification: formData.emailNotification || ''
-            };
-            return fetch('https://script.google.com/macros/s/AKfycbzFxwXUunanVErUn6BvYD6Sot7hpCPo1AatutY7oLTVWS4jAAnKsAdGAcGX7Kesu7v9yQ/exec', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            });
-        }
-
-        // Initialize floating labels for existing inputs (if needed)
-        document.querySelectorAll('.form-input').forEach(input => {
-            if (input.value) {
-                input.nextElementSibling.classList.add('active');
-            }
-        });
+        // ... (Copy the full JavaScript from my previous "merge โค้ด JS เต็ม" response here) ...
+        // สำคัญ: ทุกรายการ addEventListener ต้องตรวจสอบว่ามี element จริง เช่นนี้:
+        // const el = document.getElementById('element-id');
+        // if (el) { el.addEventListener(...); }
+        // วางโค้ด JavaScript เวอร์ชั่นแก้ไขสมบูรณ์ที่ให้ไปในคำตอบก่อนหน้าได้เลย
     </script>
 </body>
 </html>
